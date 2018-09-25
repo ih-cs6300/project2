@@ -7,7 +7,7 @@ defmodule Boss do
 
    def init(state) do
       #start numNode nodes 
-      workerLst = spawnNodes([], correctedNumNodes(state.numNodes, state.topo, state.algo), state.topo)
+      workerLst = spawnNodes([], correctedNumNodes(state.numNodes, state.topo), state.topo, state.algo)
       connLst = createConnLst(state.topo, workerLst)
       setConnNodes(connLst, workerLst)
       {:ok, %{state | :workerLst => workerLst}}
@@ -87,7 +87,7 @@ defmodule Boss do
          nodeLst
       else
          {:ok, node} = Nde.start(%{:conns => [], :algo => algo, :timesHeard => 0, :rumor => ""})
-         spawnNodes([node | nodeLst], numNodes - 1, topo)
+         spawnNodes([node | nodeLst], numNodes - 1, topo, algo)
       end
    end
 
@@ -135,9 +135,9 @@ defmodule Nde do
 
    def startWorking(pid, state) do
       if (state.algo == "gossip") do
-         timer.sleep(Enum.random(0..500))
+         :timer.sleep(Enum.random(0..500))
          Enum.at(state.conns, Enum.random(0..length(state.conns) - 1))
-      do 
+      end
    end
 
    def handle_call(op, _from, state) do
