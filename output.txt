@@ -1,0 +1,187 @@
+#PID<0.128.0>
+#PID<0.127.0>
+#PID<0.126.0>
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "",
+  timesHeard: 0,
+  timesSent: 0
+}
+ 
+#PID<0.128.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.127.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 0,
+  timesSent: 1
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 1,
+  timesSent: 1
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 2,
+  timesSent: 1
+}
+ 
+#PID<0.126.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.127.0>],
+  done?: 0,
+  rumor: "",
+  timesHeard: 0,
+  timesSent: 0
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 3,
+  timesSent: 2
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 4,
+  timesSent: 2
+}
+ 
+#PID<0.128.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.127.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 1,
+  timesSent: 4
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 5,
+  timesSent: 3
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 6,
+  timesSent: 3
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 7,
+  timesSent: 3
+}
+ 
+#PID<0.128.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.127.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 2,
+  timesSent: 7
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 8,
+  timesSent: 4
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 9,
+  timesSent: 4
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 10,
+  timesSent: 4
+}
+ 
+#PID<0.128.0>
+%{
+  algo: "gossip",
+  conns: [#PID<0.127.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 3,
+  timesSent: 9
+}
+ 
+%{
+  algo: "gossip",
+  conns: [#PID<0.127.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 4,
+  timesSent: 9
+}
+%{
+  algo: "gossip",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 11,
+  timesSent: 5
+}
+%{
+  algo: "gossip",
+  conns: [#PID<0.127.0>],
+  done?: 0,
+  rumor: "gossip",
+  timesHeard: 1,
+  timesSent: 2
+}

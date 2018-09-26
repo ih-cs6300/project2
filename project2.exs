@@ -78,7 +78,7 @@ defmodule Boss do
       if (numNodes == 0) do
          nodeLst
       else
-         {:ok, node} = Nde.start(%{:conns => [], :algo => algo, :timesHeard => 0, :rumor => ""})
+         {:ok, node} = Nde.start(%{:conns => [], :algo => algo, :timesHeard => 0, :timesSent => 0, :rumor => "", :done? => 0})
          spawnNodes([node | nodeLst], numNodes - 1, topo, algo)
       end
    end
@@ -87,12 +87,18 @@ defmodule Boss do
       GenServer.call(__MODULE__, :status)
    end
 
+   def checkAllDone(workerLst) do
+      if (!Enum.all?(workerLst, fn(workerPid) -> Nde.done?(workerPid) == 1 end)) do
+         checkAllDone(workerLst)
+      end 
+   end
+
    def startGossiping(state) do
       workerPid = Enum.random(state.workerLst)
       Nde.setRumor(workerPid, state.rumor)
       Enum.map(state.workerLst, fn(workerPid) -> Nde.startGossip(workerPid) end)
-      #Nde.startGossip(workerPid)
-      :timer.sleep(10000)
+      checkAllDone(state.workerLst)
+      #:timer.sleep(2000)
       Nde.getState(Enum.at(state.workerLst, 0)) |> IO.inspect
       Nde.getState(Enum.at(state.workerLst, 1)) |> IO.inspect
       Nde.getState(Enum.at(state.workerLst, 2)) |> IO.inspect
@@ -144,20 +150,35 @@ defmodule Nde do
       GenServer.cast(pid, :startAlgo)
    end
 
-   def sendMsg(pid, state) do
-      #IO.inspect(self())
-      #IO.puts("sendMsg")
-      #IO.inspect(state) 
-      #IO.puts(" ")
-      
-      if (state.algo == "gossip") and (state.rumor != "") and (state.timesHeard < 10) do
+   def incTimesSent(pid) do
+      GenServer.cast(pid, :incTimesSent)
+   end
+
+   def done?(pid) do
+      GenServer.call(pid, :done?)
+   end
+
+   def setDone(pid) do
+      GenServer.cast(pid, :setDone)
+   end
+
+   def checkDone(pid, state) do
+      if(state.timesSent >= 10) do
+         setDone(pid)
+         true
+      else
+         false
+      end
+   end
+
+   def sendMsg(pid, state) do      
+      if ((state.algo == "gossip") and (state.rumor != "") and state.timesSent < 10) do
          :timer.sleep(Enum.random(0..500))
          #send message to a random neighbor
          receiveMsg(Enum.random(state.conns), state.rumor)
-         #IO.inspect(self())  
-         #IO.puts("inside sendMsg")
-         #IO.puts(" ")
+         incTimesSent(pid)
       end
+      checkDone(pid, state)
       sendMsg(pid, getState(pid))
    end
 
@@ -169,6 +190,7 @@ defmodule Nde do
       case op do
          :status -> {:reply, state, state}
          :getConns -> {:reply, state.conns, state}
+         :done? -> {:reply, state.done?, state}
          _ -> {:stop, "Not implemented", state}
       end
    end
@@ -179,15 +201,19 @@ defmodule Nde do
       {:noreply, state}
    end
 
-   #def handle_cast({:msg, msg}, state) do
-   #   {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
-   #end
-
+   def handle_cast({:msg, msg}, state) do
+      #IO.inspect(self())
+      #IO.inspect(state)
+      #IO.puts(" ")
+      {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
+   end
 
    def handle_cast(op, state)  do
       case op do
+         :incTimesSent -> {:noreply, %{state | :timesSent => state.timesSent + 1}}
+         :setDone -> {:noreply, %{state | :done? => 1}}
          {:setConns, connLst} -> {:noreply, %{state | :conns => connLst}}
-         {:msg, msg} -> {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
+         #{:msg, msg} -> {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
          {:setRumor, rumor} -> {:noreply, %{state | :rumor => rumor}}
          _ -> {:stop, "Not implemented", state}
       end
