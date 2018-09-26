@@ -38,6 +38,7 @@ defmodule Boss do
       case topo do
          "line" -> connLine(nodeLst, 0, [])
          "full" -> connFull(nodeLst, 0, [])
+         "imp2D" -> connLineImp(nodeLst, 0, [])
          _-> {:stop, "Not implemented"}
       end
    end
@@ -58,6 +59,28 @@ defmodule Boss do
          end
       end
    end
+
+   def connLineImp(nodeLst, idx, connLst) do
+      numNodes = Enum.count(nodeLst)
+      if (idx >= numNodes) or (numNodes <= 1) do
+         connLst
+      else
+         if (idx == 0) do
+            tempLst = List.delete_at(nodeLst, idx) |> List.delete(Enum.at(nodeLst, idx + 1))
+            connLineImp(nodeLst, idx + 1, connLst ++ [[Enum.at(nodeLst, idx + 1), Enum.random(tempLst)]])        #node at beginning of line
+         else
+            if (idx < numNodes - 1) do
+               tempLst = List.delete_at(nodeLst, idx) |> List.delete(Enum.at(nodeLst, idx - 1)) |> List.delete(Enum.at(nodeLst, idx + 1))
+               connLineImp(nodeLst, idx + 1, connLst ++ [[Enum.at(nodeLst, idx - 1), Enum.at(nodeLst, idx + 1), Enum.random(tempLst)]])  #node in middle of line
+            else
+               tempLst = List.delete_at(nodeLst, idx) |> List.delete(Enum.at(nodeLst, idx - 1))
+               connLineImp(nodeLst, idx + 1, connLst ++ [[Enum.at(nodeLst, idx - 1), Enum.random(tempLst)]])          #node at end of line
+            end
+         end
+      end
+   end
+
+
 
    def connFull(nodeLst, idx, connLst) do
       numNodes = length(nodeLst)
@@ -298,3 +321,4 @@ Boss.startGossiping(bossState)
 #Nde.getState(pid) |> IO.inspect
 #Boss.connLine([1, 2, 3, 4, 5], 0, []) |> IO.inspect
 #Boss.connFull([1, 2, 3, 4, 5], 0, []) |> IO.inspect
+#Boss.connLineImp([1, 2, 3, 4, 5, 6], 0, []) |> IO.inspect
