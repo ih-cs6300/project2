@@ -1,187 +1,374 @@
-#PID<0.128.0>
 #PID<0.127.0>
 #PID<0.126.0>
-#PID<0.127.0>
-%{
-  algo: "gossip",
-  conns: [#PID<0.128.0>, #PID<0.126.0>],
-  done?: 0,
-  rumor: "",
-  timesHeard: 0,
-  timesSent: 0
-}
- 
 #PID<0.128.0>
+#PID<0.127.0>
 %{
-  algo: "gossip",
-  conns: [#PID<0.127.0>],
+  algo: "push-sum",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: 99.99999,
+  delta2: 99.99999,
   done?: 0,
-  rumor: "gossip",
+  nodeId: 2,
+  rumor: "",
+  s: 2,
+  sToWOld: 1000000,
   timesHeard: 0,
-  timesSent: 1
+  timesSent: 0,
+  w: 1
 }
  
+#PID<0.126.0>
+%{
+  algo: "push-sum",
+  conns: [#PID<0.127.0>],
+  delta1: -999997.0,
+  delta2: 99.99999,
+  done?: 0,
+  nodeId: 3,
+  rumor: "gossip",
+  s: 1.5,
+  sToWOld: 3.0,
+  timesHeard: 0,
+  timesSent: 1,
+  w: 0.5
+}
+ 
+0.0
 #PID<0.127.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: -999998.0,
+  delta2: 99.99999,
   done?: 0,
-  rumor: "gossip",
+  nodeId: 2,
+  rumor: "",
+  s: 1.75,
+  sToWOld: 2.3333333333333335,
   timesHeard: 1,
-  timesSent: 1
+  timesSent: 1,
+  w: 0.75
 }
  
 #PID<0.127.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: -999998.0,
+  delta2: 99.99999,
   done?: 0,
-  rumor: "gossip",
+  nodeId: 2,
+  rumor: "",
+  s: 2.5,
+  sToWOld: 2.3333333333333335,
   timesHeard: 2,
-  timesSent: 1
+  timesSent: 1,
+  w: 1.0
 }
  
+ghi
+#PID<0.127.0>
+%{
+  algo: "push-sum",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: -999998.0,
+  delta2: 99.99999,
+  done?: 0,
+  nodeId: 2,
+  rumor: "",
+  s: 3.0,
+  sToWOld: 2.3333333333333335,
+  timesHeard: 3,
+  timesSent: 1,
+  w: 1.5
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "push-sum",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: -999998.0,
+  delta2: 99.99999,
+  done?: 0,
+  nodeId: 2,
+  rumor: "",
+  s: 3.625,
+  sToWOld: 2.3333333333333335,
+  timesHeard: 4,
+  timesSent: 1,
+  w: 1.75
+}
+ 
+0.0
 #PID<0.126.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.127.0>],
+  delta1: 0.0,
+  delta2: 99.99999,
   done?: 0,
-  rumor: "",
-  timesHeard: 0,
-  timesSent: 0
-}
- 
-#PID<0.127.0>
-%{
-  algo: "gossip",
-  conns: [#PID<0.128.0>, #PID<0.126.0>],
-  done?: 0,
+  nodeId: 3,
   rumor: "gossip",
-  timesHeard: 3,
-  timesSent: 2
-}
- 
-#PID<0.127.0>
-%{
-  algo: "gossip",
-  conns: [#PID<0.128.0>, #PID<0.126.0>],
-  done?: 0,
-  rumor: "gossip",
-  timesHeard: 4,
-  timesSent: 2
-}
- 
-#PID<0.128.0>
-%{
-  algo: "gossip",
-  conns: [#PID<0.127.0>],
-  done?: 0,
-  rumor: "gossip",
+  s: 0.3125,
+  sToWOld: 2.5,
   timesHeard: 1,
-  timesSent: 4
+  timesSent: 4,
+  w: 0.125
 }
  
+0.0
 #PID<0.127.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: -999998.0,
+  delta2: 0.0,
   done?: 0,
-  rumor: "gossip",
+  nodeId: 2,
+  rumor: "",
+  s: 1.96875,
+  sToWOld: 2.1,
   timesHeard: 5,
-  timesSent: 3
+  timesSent: 2,
+  w: 0.9375
 }
  
+ghi
 #PID<0.127.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: -999998.0,
+  delta2: 0.0,
   done?: 0,
-  rumor: "gossip",
+  nodeId: 2,
+  rumor: "",
+  s: 2.21875,
+  sToWOld: 2.1,
   timesHeard: 6,
-  timesSent: 3
+  timesSent: 2,
+  w: 1.1875
 }
  
+0.0
 #PID<0.127.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: -999998.0,
+  delta2: 0.0,
   done?: 0,
-  rumor: "gossip",
+  nodeId: 2,
+  rumor: "",
+  s: 2.34375,
+  sToWOld: 2.1,
   timesHeard: 7,
-  timesSent: 3
+  timesSent: 2,
+  w: 1.3125
 }
  
+ghi
 #PID<0.128.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.127.0>],
+  delta1: 99.99999,
+  delta2: 99.99999,
   done?: 0,
-  rumor: "gossip",
-  timesHeard: 2,
-  timesSent: 7
+  nodeId: 1,
+  rumor: "",
+  s: 0.125,
+  sToWOld: 1.0,
+  timesHeard: 0,
+  timesSent: 3,
+  w: 0.125
 }
  
 #PID<0.127.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: 99.99999,
+  delta2: 99.99999,
   done?: 0,
-  rumor: "gossip",
+  nodeId: 2,
+  rumor: "",
+  s: 1.25,
+  sToWOld: 1.8181818181818181,
   timesHeard: 8,
-  timesSent: 4
+  timesSent: 3,
+  w: 0.6875
 }
  
 #PID<0.127.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: 99.99999,
+  delta2: 99.99999,
   done?: 0,
-  rumor: "gossip",
+  nodeId: 2,
+  rumor: "",
+  s: 1.3125,
+  sToWOld: 1.8181818181818181,
   timesHeard: 9,
-  timesSent: 4
-}
- 
-#PID<0.127.0>
-%{
-  algo: "gossip",
-  conns: [#PID<0.128.0>, #PID<0.126.0>],
-  done?: 0,
-  rumor: "gossip",
-  timesHeard: 10,
-  timesSent: 4
+  timesSent: 3,
+  w: 0.75
 }
  
 #PID<0.128.0>
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.127.0>],
+  delta1: 0.0,
+  delta2: 99.99999,
   done?: 0,
+  nodeId: 1,
+  rumor: "",
+  s: 0.5546875,
+  sToWOld: 1.868421052631579,
+  timesHeard: 1,
+  timesSent: 4,
+  w: 0.296875
+}
+ 
+0.0
+#PID<0.126.0>
+%{
+  algo: "push-sum",
+  conns: [#PID<0.127.0>],
+  delta1: 0.0,
+  delta2: 0.0,
+  done?: 1,
+  nodeId: 3,
   rumor: "gossip",
+  s: 0.296875,
+  sToWOld: 2.375,
+  timesHeard: 2,
+  timesSent: 6,
+  w: 0.125
+}
+ 
+#PID<0.128.0>
+%{
+  algo: "push-sum",
+  conns: [#PID<0.127.0>],
+  delta1: 0.0,
+  delta2: 99.99999,
+  done?: 0,
+  nodeId: 1,
+  rumor: "",
+  s: 1.1796875,
+  sToWOld: 1.868421052631579,
+  timesHeard: 2,
+  timesSent: 4,
+  w: 0.640625
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "push-sum",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: 0.0,
+  delta2: 0.0,
+  done?: 1,
+  nodeId: 2,
+  rumor: "",
+  s: 0.201171875,
+  sToWOld: 1.8392857142857142,
+  timesHeard: 10,
+  timesSent: 6,
+  w: 0.109375
+}
+ 
+0.0
+#PID<0.127.0>
+%{
+  algo: "push-sum",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: 0.0,
+  delta2: 0.0,
+  done?: 1,
+  nodeId: 2,
+  rumor: "",
+  s: 0.349609375,
+  sToWOld: 1.8392857142857142,
+  timesHeard: 11,
+  timesSent: 6,
+  w: 0.171875
+}
+ 
+#PID<0.126.0>
+%{
+  algo: "push-sum",
+  conns: [#PID<0.127.0>],
+  delta1: 0.0,
+  delta2: 0.0,
+  done?: 1,
+  nodeId: 3,
+  rumor: "gossip",
+  s: 0.349609375,
+  sToWOld: 2.034090909090909,
   timesHeard: 3,
-  timesSent: 9
+  timesSent: 7,
+  w: 0.171875
+}
+ 
+#PID<0.127.0>
+%{
+  algo: "push-sum",
+  conns: [#PID<0.128.0>, #PID<0.126.0>],
+  delta1: 0.0,
+  delta2: 0.0,
+  done?: 1,
+  nodeId: 2,
+  rumor: "",
+  s: 0.3134765625,
+  sToWOld: 1.9573170731707317,
+  timesHeard: 12,
+  timesSent: 7,
+  w: 0.16015625
 }
  
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.127.0>],
-  done?: 0,
-  rumor: "gossip",
-  timesHeard: 4,
-  timesSent: 9
+  delta1: 0.0,
+  delta2: 0.0,
+  done?: 1,
+  nodeId: 1,
+  rumor: "",
+  s: 0.34521484375,
+  sToWOld: 1.8411458333333333,
+  timesHeard: 3,
+  timesSent: 6,
+  w: 0.1875
 }
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.128.0>, #PID<0.126.0>],
-  done?: 0,
-  rumor: "gossip",
-  timesHeard: 11,
-  timesSent: 5
+  delta1: 0.0,
+  delta2: 0.0,
+  done?: 1,
+  nodeId: 2,
+  rumor: "",
+  s: 0.65869140625,
+  sToWOld: 1.9573170731707317,
+  timesHeard: 13,
+  timesSent: 7,
+  w: 0.34765625
 }
 %{
-  algo: "gossip",
+  algo: "push-sum",
   conns: [#PID<0.127.0>],
-  done?: 0,
+  delta1: 0.0,
+  delta2: 0.0,
+  done?: 1,
+  nodeId: 3,
   rumor: "gossip",
-  timesHeard: 1,
-  timesSent: 2
+  s: 0.4501953125,
+  sToWOld: 2.034090909090909,
+  timesHeard: 4,
+  timesSent: 7,
+  w: 0.2265625
 }

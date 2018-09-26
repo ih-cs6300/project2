@@ -78,7 +78,8 @@ defmodule Boss do
       if (numNodes == 0) do
          nodeLst
       else
-         {:ok, node} = Nde.start(%{:conns => [], :algo => algo, :timesHeard => 0, :timesSent => 0, :rumor => "", :done? => 0})
+         {:ok, node} = Nde.start(%{:conns => [], :algo => algo, :timesHeard => 0, :timesSent => 0, :rumor => "", :done? => 0, :nodeId => numNodes, :s => numNodes, :w => 1, :sToWOld => 1000000,
+          :delta1 => 99.99999, :delta2 => 99.99999})
          spawnNodes([node | nodeLst], numNodes - 1, topo, algo)
       end
    end
@@ -163,12 +164,50 @@ defmodule Nde do
    end
 
    def checkDone(pid, state) do
-      if(state.timesSent >= 10) do
-         setDone(pid)
-         true
+      if (state.algo == "gossip") do
+         if(state.timesSent >= 10) do
+            setDone(pid)
+            true
+         else
+            false
+         end
       else
-         false
+         if (state.algo == "push-sum") do
+            if(state.delta1 == 99.99999) do
+               updateDelta1(pid, (state.s / state.w) - state.sToWOld)
+            else 
+               if (state.delta2 == 99.99999) do
+                  updateDelta2(pid, (state.s / state.w) - state.sToWOld)
+                  IO.inspect((state.s / state.w) - state.sToWOld)
+               else
+                  if ((abs(state.delta1) < 1.0e-10) and (abs(state.delta2) < 1.0e-10) and (abs((state.s / state.w) - state.sToWOld) < 1.0e-10)) do
+                     setDone(pid)
+                     true
+                  else
+                     IO.puts("ghi")
+                     updateDelta1(pid, 99.99999)
+                     updateDelta2(pid, 99.99999)
+                  end
+               end    
+            end
+         end
       end
+   end
+   
+   def updateSw(pid) do
+      GenServer.cast(pid, :updateSw)
+   end
+
+   def updateDelta1(pid, val) do
+      GenServer.cast(pid, {:updateDelta1, val})
+   end
+
+   def updateDelta2(pid, val) do
+      GenServer.cast(pid, {:updateDelta2, val})
+   end
+
+   def updateSToWOld(pid) do
+      GenServer.cast(pid, :updateSToWOld)
    end
 
    def sendMsg(pid, state) do      
@@ -177,6 +216,14 @@ defmodule Nde do
          #send message to a random neighbor
          receiveMsg(Enum.random(state.conns), state.rumor)
          incTimesSent(pid)
+      else
+         if (state.algo == "push-sum") do
+            :timer.sleep(Enum.random(0..500))
+            receiveMsg(Enum.random(state.conns), {state.s/2, state.w/2})
+            updateSToWOld(pid)
+            updateSw(pid)
+            incTimesSent(pid)
+         end
       end
       checkDone(pid, state)
       sendMsg(pid, getState(pid))
@@ -202,15 +249,23 @@ defmodule Nde do
    end
 
    def handle_cast({:msg, msg}, state) do
-      #IO.inspect(self())
-      #IO.inspect(state)
-      #IO.puts(" ")
-      {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
+      IO.inspect(self())
+      IO.inspect(state)
+      IO.puts(" ")
+      if (state.algo == "gossip") do
+         {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
+      else
+         {:noreply, %{state | :s => elem(msg, 0) + state.s, :w => elem(msg, 1) + state.w, :timesHeard => state.timesHeard + 1}}
+      end
    end
 
    def handle_cast(op, state)  do
       case op do
          :incTimesSent -> {:noreply, %{state | :timesSent => state.timesSent + 1}}
+         :updateSToWOld -> {:noreply, %{state | :sToWOld => state.s / state.w}}
+         :updateSw -> {:noreply, %{state | :s => state.s / 2, :w => state.w / 2}}
+         {:updateDelta1, val} -> {:noreply, %{state | :delta1 => val}}
+         {:updateDelta2, val} -> {:noreply, %{state | :delta2 => val}}
          :setDone -> {:noreply, %{state | :done? => 1}}
          {:setConns, connLst} -> {:noreply, %{state | :conns => connLst}}
          #{:msg, msg} -> {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
