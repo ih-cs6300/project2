@@ -39,6 +39,7 @@ defmodule Boss do
          "line" -> connLine(nodeLst, 0, [])
          "full" -> connFull(nodeLst, 0, [])
          "imp2D" -> connLineImp(nodeLst, 0, [])
+         "torus" -> connTorus(nodeLst)
          _-> {:stop, "Not implemented"}
       end
    end
@@ -80,6 +81,45 @@ defmodule Boss do
       end
    end
 
+   def mod(val, base) do
+      if (val < 0) do
+         rem(val, base) + base
+      else
+         rem(val, base)
+      end   
+   end
+
+   def getGridNeighbors(gridPos, gridMap, nodeLst, lenSide) do
+      connLst = []
+      connLst = [gridMap[{mod(elem(gridPos, 0) + 1, lenSide), elem(gridPos, 1)}] | connLst]
+      #IO.inspect({mod(elem(gridPos, 0) + 1, lenSide), elem(gridPos, 1)})
+      #IO.gets("pause")
+
+
+      connLst = [gridMap[{mod(elem(gridPos, 0) - 1, lenSide), elem(gridPos, 1)}] | connLst]
+      #IO.inspect({mod(elem(gridPos, 0) - 1, lenSide), elem(gridPos, 1)})
+      #IO.gets("pause")
+
+      connLst = [gridMap[{elem(gridPos, 0), mod(elem(gridPos, 1) - 1, lenSide)}] | connLst]
+    
+      connLst = [gridMap[{elem(gridPos, 0), mod(elem(gridPos, 1) + 1, lenSide)}] | connLst]
+      
+      connLst 
+   end
+
+   def connTorus(nodeLst) do
+      lenSide = round(:math.sqrt(length(nodeLst)))
+      #IO.inspect(nodeLst)
+      #IO.inspect(lenSide)
+      gridSqrs = Enum.map(0..lenSide-1, fn(x) -> Enum.map(0..lenSide-1, fn(y) -> {x, y} end) end) |> List.flatten()
+      #IO.inspect(gridSqrs)
+      gridMap = Enum.zip(gridSqrs, nodeLst) |> Enum.into(%{})
+      #IO.inspect(gridMap)
+      connList = Enum.map(gridSqrs, fn(pos) -> getGridNeighbors(pos, gridMap, nodeLst, lenSide) end)      
+      #IO.inspect(connList)
+      #IO.gets("pause")
+   end
+
 
 
    def connFull(nodeLst, idx, connLst) do
@@ -90,6 +130,8 @@ defmodule Boss do
          connFull(nodeLst, idx + 1, connLst ++ [List.delete_at(nodeLst, idx)])
       end
    end
+
+   
 
    def nearestSquare(num, sqr) do
        if (num <= sqr * sqr) do
