@@ -37,6 +37,7 @@ defmodule Boss do
    def createConnLst(topo, nodeLst) do
       case topo do
          "line" -> connLine(nodeLst, 0, [])
+         "full" -> connFull(nodeLst, 0, [])
          _-> {:stop, "Not implemented"}
       end
    end
@@ -55,6 +56,15 @@ defmodule Boss do
                connLine(nodeLst, idx + 1, connLst ++ [[Enum.at(nodeLst, idx - 1)]])          #node at end of line
             end
          end
+      end
+   end
+
+   def connFull(nodeLst, idx, connLst) do
+      numNodes = length(nodeLst)
+      if (idx >= numNodes) do
+         connLst
+      else
+         connFull(nodeLst, idx + 1, connLst ++ [List.delete_at(nodeLst, idx)])
       end
    end
 
@@ -99,7 +109,6 @@ defmodule Boss do
       Nde.setRumor(workerPid, state.rumor)
       Enum.map(state.workerLst, fn(workerPid) -> Nde.startGossip(workerPid) end)
       checkAllDone(state.workerLst)
-      #:timer.sleep(2000)
       Nde.getState(Enum.at(state.workerLst, 0)) |> IO.inspect
       Nde.getState(Enum.at(state.workerLst, 1)) |> IO.inspect
       Nde.getState(Enum.at(state.workerLst, 2)) |> IO.inspect
@@ -184,7 +193,6 @@ defmodule Nde do
                      setDone(pid)
                      true
                   else
-                     IO.puts("ghi")
                      updateDelta1(pid, 99.99999)
                      updateDelta2(pid, 99.99999)
                   end
@@ -289,3 +297,4 @@ Boss.startGossiping(bossState)
 #Nde.getConns(pid) |> IO.inspect
 #Nde.getState(pid) |> IO.inspect
 #Boss.connLine([1, 2, 3, 4, 5], 0, []) |> IO.inspect
+#Boss.connFull([1, 2, 3, 4, 5], 0, []) |> IO.inspect
