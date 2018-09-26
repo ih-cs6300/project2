@@ -58,14 +58,6 @@ defmodule Boss do
       end
    end
 
-   def setWorkerConns(connLst, workerLst) do
-       IO.puts("setWorkerConns")
-       IO.inspect(connLst)
-       IO.inspect(workerLst)
-       #Enum.map(0..(connLst.size() - 1), fn(x) -> Nde.setConns(Enum.at(workerLst, x), Enum.at(connLst, x)) end) |> IO.inpsect
-       IO.puts("setWorkercons Done")
-   end
-
    def nearestSquare(num, sqr) do
        if (num <= sqr * sqr) do
           sqr * sqr
@@ -93,6 +85,17 @@ defmodule Boss do
 
    def getState() do
       GenServer.call(__MODULE__, :status)
+   end
+
+   def startGossiping(state) do
+      workerPid = Enum.random(state.workerLst)
+      Nde.setRumor(workerPid, state.rumor)
+      Enum.map(state.workerLst, fn(workerPid) -> Nde.startGossip(workerPid) end)
+      #Nde.startGossip(workerPid)
+      :timer.sleep(10000)
+      Nde.getState(Enum.at(state.workerLst, 0)) |> IO.inspect
+      Nde.getState(Enum.at(state.workerLst, 1)) |> IO.inspect
+      Nde.getState(Enum.at(state.workerLst, 2)) |> IO.inspect
    end
 
    def handle_call(op, _from, state) do
@@ -133,11 +136,33 @@ defmodule Nde do
       GenServer.call(pid, :status)
    end
 
-   def startWorking(pid, state) do
-      if (state.algo == "gossip") do
+   def setRumor(pid, rumor) do
+      GenServer.cast(pid, {:setRumor, rumor})
+   end
+
+   def startGossip(pid) do
+      GenServer.cast(pid, :startAlgo)
+   end
+
+   def sendMsg(pid, state) do
+      #IO.inspect(self())
+      #IO.puts("sendMsg")
+      #IO.inspect(state) 
+      #IO.puts(" ")
+      
+      if (state.algo == "gossip") and (state.rumor != "") and (state.timesHeard < 10) do
          :timer.sleep(Enum.random(0..500))
-         Enum.at(state.conns, Enum.random(0..length(state.conns) - 1))
+         #send message to a random neighbor
+         receiveMsg(Enum.random(state.conns), state.rumor)
+         #IO.inspect(self())  
+         #IO.puts("inside sendMsg")
+         #IO.puts(" ")
       end
+      sendMsg(pid, getState(pid))
+   end
+
+   def receiveMsg(pid, msg) do
+      GenServer.cast(pid, {:msg, msg})
    end
 
    def handle_call(op, _from, state) do
@@ -148,12 +173,22 @@ defmodule Nde do
       end
    end
 
+   def handle_cast(:startAlgo, state) do
+      IO.inspect(self())
+      Task.async(Nde, :sendMsg, [self(), state])
+      {:noreply, state}
+   end
+
+   #def handle_cast({:msg, msg}, state) do
+   #   {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
+   #end
+
 
    def handle_cast(op, state)  do
       case op do
          {:setConns, connLst} -> {:noreply, %{state | :conns => connLst}}
-         :startWorking -> {:noreply, state}
          {:msg, msg} -> {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
+         {:setRumor, rumor} -> {:noreply, %{state | :rumor => rumor}}
          _ -> {:stop, "Not implemented", state}
       end
    end
@@ -162,8 +197,9 @@ end
 
 
 [numNodes, topology, algorithm] = System.argv     #get command line arguments
-Boss.start(%{:numNodes => String.to_integer(numNodes), :topo => topology, :algo => algorithm, :workerLst => []})
-Boss.getState() |> IO.inspect
+Boss.start(%{:numNodes => String.to_integer(numNodes), :topo => topology, :algo => algorithm, :workerLst => [], :rumor => "gossip"})
+bossState = Boss.getState()
+Boss.startGossiping(bossState)
 #Boss.spawnNodes([], 4) |> IO.inspect
 #Boss.nearestCube(10, 1) |> IO.inspect
 #{:ok, pid} = Nde.start(%{:conns => []})
