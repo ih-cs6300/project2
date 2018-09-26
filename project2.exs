@@ -41,6 +41,7 @@ defmodule Boss do
          "imp2D" -> connLineImp(nodeLst, 0, [])
          "torus" -> connTorus(nodeLst)
          "3D" -> conn3D(nodeLst)
+         "rand2D" -> connRand2D(nodeLst)
          _-> {:stop, "Not implemented"}
       end
    end
@@ -162,6 +163,30 @@ defmodule Boss do
       else
          connFull(nodeLst, idx + 1, connLst ++ [List.delete_at(nodeLst, idx)])
       end
+   end
+
+   def dist(pos1, pos2) do
+      :math.sqrt(:math.pow(elem(pos2, 1) - elem(pos1, 1), 2) + :math.pow(elem(pos2, 0) - elem(pos1, 0), 2))
+   end
+
+   def rand2DgetNeighbors(gridPos, gridMap, gridSqrs) do
+      gridSqrs = List.delete(gridSqrs, gridPos)
+      connLst = Enum.filter(gridSqrs, fn(pos2) -> dist(gridPos, pos2) <= 0.2 end) |> Enum.map(fn(x) -> gridMap[x] end) 
+      connLst
+   end
+
+   def connRand2D(nodeLst) do
+      lenSide = length(nodeLst)
+      xCoords = Enum.map(0..length(nodeLst) - 1, fn(x) -> :rand.uniform() end)
+      yCoords = Enum.map(0..length(nodeLst) - 1, fn(x) -> :rand.uniform() end)
+      gridSqrs = Enum.zip(xCoords, yCoords)
+      gridMap = Enum.zip(gridSqrs, nodeLst) |> Enum.into(%{})
+      connLst = Enum.map(gridSqrs, fn(pos) -> rand2DgetNeighbors(pos, gridMap, gridSqrs) end)
+      IO.inspect(gridSqrs)
+      IO.inspect(gridMap)
+      IO.inspect(connLst) 
+      IO.gets("pause")
+      connLst
    end
 
    
