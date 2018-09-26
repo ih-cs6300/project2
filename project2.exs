@@ -40,6 +40,7 @@ defmodule Boss do
          "full" -> connFull(nodeLst, 0, [])
          "imp2D" -> connLineImp(nodeLst, 0, [])
          "torus" -> connTorus(nodeLst)
+         "3D" -> conn3D(nodeLst)
          _-> {:stop, "Not implemented"}
       end
    end
@@ -89,7 +90,7 @@ defmodule Boss do
       end   
    end
 
-   def getGridNeighbors(gridPos, gridMap, nodeLst, lenSide) do
+   def getGridNeighbors2D(gridPos, gridMap, nodeLst, lenSide) do
       connLst = []
       connLst = [gridMap[{mod(elem(gridPos, 0) + 1, lenSide), elem(gridPos, 1)}] | connLst]
       #IO.inspect({mod(elem(gridPos, 0) + 1, lenSide), elem(gridPos, 1)})
@@ -107,6 +108,25 @@ defmodule Boss do
       connLst 
    end
 
+   def getGridNeighbors3D(gridPos, gridMap, nodeLst, lenSide) do
+      connLst = []
+
+      #IO.inspect(gridMap[{elem(gridPos, 0) + 1, elem(gridPos, 1), elem(gridPos, 2)}])
+      #IO.gets("pause")
+      connLst = [gridMap[{elem(gridPos, 0) + 1, elem(gridPos, 1), elem(gridPos, 2)}] | connLst]
+      #IO.puts("A")
+      #IO.inspect(connLst)
+      connLst = [gridMap[{elem(gridPos, 0) - 1, elem(gridPos, 1), elem(gridPos, 2)}] | connLst]
+      connLst = [gridMap[{elem(gridPos, 0), elem(gridPos, 1) + 1, elem(gridPos, 2)}] | connLst]
+      connLst = [gridMap[{elem(gridPos, 0), elem(gridPos, 1) - 1, elem(gridPos, 2)}] | connLst]
+      connLst = [gridMap[{elem(gridPos, 0), elem(gridPos, 1), elem(gridPos, 2) + 1}] | connLst]
+      connLst = [gridMap[{elem(gridPos, 0), elem(gridPos, 1), elem(gridPos, 2) - 1}] | connLst]
+      #IO.puts("B") 
+      Enum.filter(connLst, fn(x) -> x != nil end) |> IO.inspect
+      #IO.gets("pause")
+
+   end
+
    def connTorus(nodeLst) do
       lenSide = round(:math.sqrt(length(nodeLst)))
       #IO.inspect(nodeLst)
@@ -115,12 +135,25 @@ defmodule Boss do
       #IO.inspect(gridSqrs)
       gridMap = Enum.zip(gridSqrs, nodeLst) |> Enum.into(%{})
       #IO.inspect(gridMap)
-      connList = Enum.map(gridSqrs, fn(pos) -> getGridNeighbors(pos, gridMap, nodeLst, lenSide) end)      
+      connList = Enum.map(gridSqrs, fn(pos) -> getGridNeighbors2D(pos, gridMap, nodeLst, lenSide) end)      
       #IO.inspect(connList)
       #IO.gets("pause")
    end
 
+   def conn3D (nodeLst) do
+      lenSide = round(:math.pow(length(nodeLst), (1/3)))
+      IO.inspect(lenSide)
 
+      gridSqrs = Enum.map(0..2, fn(x) -> Enum.map(0..2, fn(y) -> Enum.map(0..2, fn(z) -> {x, y, z} end) end) end) |> List.flatten()
+      IO.inspect(gridSqrs)
+
+      gridMap = Enum.zip(gridSqrs, nodeLst) |> Enum.into(%{})
+      IO.inspect(gridMap)
+
+      connLst = Enum.map(gridSqrs, fn(pos) -> getGridNeighbors3D(pos, gridMap, nodeLst, lenSide) end)      
+      #IO.inspect(connLst)
+      #IO.gets("pause")
+   end
 
    def connFull(nodeLst, idx, connLst) do
       numNodes = length(nodeLst)
