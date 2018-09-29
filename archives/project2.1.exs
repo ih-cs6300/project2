@@ -91,7 +91,7 @@ defmodule Boss do
       end   
    end
 
-   def getGridNeighbors2D(gridPos, gridMap, lenSide) do
+   def getGridNeighbors2D(gridPos, gridMap, nodeLst, lenSide) do
       connLst = []
       connLst = [gridMap[{mod(elem(gridPos, 0) + 1, lenSide), elem(gridPos, 1)}] | connLst]
       #IO.inspect({mod(elem(gridPos, 0) + 1, lenSide), elem(gridPos, 1)})
@@ -109,7 +109,7 @@ defmodule Boss do
       connLst 
    end
 
-   def getGridNeighbors3D(gridPos, gridMap) do
+   def getGridNeighbors3D(gridPos, gridMap, nodeLst, lenSide) do
       connLst = []
 
       #IO.inspect(gridMap[{elem(gridPos, 0) + 1, elem(gridPos, 1), elem(gridPos, 2)}])
@@ -136,14 +136,13 @@ defmodule Boss do
       #IO.inspect(gridSqrs)
       gridMap = Enum.zip(gridSqrs, nodeLst) |> Enum.into(%{})
       #IO.inspect(gridMap)
-      connLst = Enum.map(gridSqrs, fn(pos) -> getGridNeighbors2D(pos, gridMap, lenSide) end)
-      connLst      
-      #IO.inspect(connLst)
+      connList = Enum.map(gridSqrs, fn(pos) -> getGridNeighbors2D(pos, gridMap, nodeLst, lenSide) end)      
+      #IO.inspect(connList)
       #IO.gets("pause")
    end
 
    def conn3D (nodeLst) do
-      #lenSide = round(:math.pow(length(nodeLst), (1/3)))
+      lenSide = round(:math.pow(length(nodeLst), (1/3)))
       #IO.inspect(lenSide)
 
       gridSqrs = Enum.map(0..2, fn(x) -> Enum.map(0..2, fn(y) -> Enum.map(0..2, fn(z) -> {x, y, z} end) end) end) |> List.flatten()
@@ -152,8 +151,7 @@ defmodule Boss do
       gridMap = Enum.zip(gridSqrs, nodeLst) |> Enum.into(%{})
       #IO.inspect(gridMap)
 
-      connLst = Enum.map(gridSqrs, fn(pos) -> getGridNeighbors3D(pos, gridMap) end)    
-      connLst  
+      connLst = Enum.map(gridSqrs, fn(pos) -> getGridNeighbors3D(pos, gridMap, nodeLst, lenSide) end)      
       #IO.inspect(connLst)
       #IO.gets("pause")
    end
@@ -178,8 +176,9 @@ defmodule Boss do
    end
 
    def connRand2D(nodeLst) do
-      xCoords = Enum.map(0..length(nodeLst) - 1, fn(_) -> :rand.uniform() end)
-      yCoords = Enum.map(0..length(nodeLst) - 1, fn(_) -> :rand.uniform() end)
+      lenSide = length(nodeLst)
+      xCoords = Enum.map(0..length(nodeLst) - 1, fn(x) -> :rand.uniform() end)
+      yCoords = Enum.map(0..length(nodeLst) - 1, fn(x) -> :rand.uniform() end)
       gridSqrs = Enum.zip(xCoords, yCoords)
       gridMap = Enum.zip(gridSqrs, nodeLst) |> Enum.into(%{})
       connLst = Enum.map(gridSqrs, fn(pos) -> rand2DgetNeighbors(pos, gridMap, gridSqrs) end)
@@ -213,7 +212,7 @@ defmodule Boss do
          nodeLst
       else
          {:ok, node} = Nde.start(%{:conns => [], :algo => algo, :timesHeard => 0, :timesSent => 0, :rumor => "", :done? => 0, :nodeId => numNodes, :s => numNodes, :w => 1, :sToWOld => 1000000,
-          :delta1 => 99.99999, :delta2 => 99.99999})
+          :delta1 => 99.99999, :delta2 => 99.99999, :parentPid => self()})
          spawnNodes([node | nodeLst], numNodes - 1, topo, algo)
       end
    end
@@ -222,23 +221,24 @@ defmodule Boss do
       GenServer.call(__MODULE__, :status)
    end
 
-   def checkAllDone(workerLst) do
-      if (!Enum.all?(workerLst, fn(workerPid) -> Nde.done?(workerPid) == 1 end)) do
-         checkAllDone(workerLst)
+   def checkAllDone(workerLst, state) do
+      if (state.nodesDone != length(workerLst)) do
+         checkAllDone(workerLst, getState())
       end 
    end
 
    def startGossiping(state) do
       workerPid = Enum.random(state.workerLst)
       Nde.setRumor(workerPid, state.rumor)
-      time1 = System.monotonic_time(:milliseconds);
       Enum.map(state.workerLst, fn(workerPid) -> Nde.startGossip(workerPid) end)
-      checkAllDone(state.workerLst)
-      time2 = System.monotonic_time(:milliseconds)
+      checkAllDone(state.workerLst, state)
       Nde.getState(Enum.at(state.workerLst, 0)) |> IO.inspect
       Nde.getState(Enum.at(state.workerLst, 1)) |> IO.inspect
       Nde.getState(Enum.at(state.workerLst, 2)) |> IO.inspect
-      IO.inspect("#{(time2 - time1) / 1000}s")
+   end
+
+   def nodeDone(pid) do
+      GenServer.cast(pid, :nodeDone)
    end
 
    def handle_call(op, _from, state) do
@@ -250,9 +250,11 @@ defmodule Boss do
 
    def handle_cast(op, state)  do
       case op do
+         :nodeDone -> {:noreply, %{state | :nodesDone => state.nodesDone + 1}}
          _ -> {:stop, "Not implemented", state}
       end
    end
+
 end
 
 defmodule Nde do
@@ -299,9 +301,10 @@ defmodule Nde do
    end
 
    def checkDone(pid, state) do
-      if (state.algo == "gossip") do
+      if (state.algo == "gossip") and (state.done? != 1) do
          if(state.timesSent >= 10) do
             setDone(pid)
+            Boss.nodeDone(state.parentPid)
             true
          else
             false
@@ -315,8 +318,9 @@ defmodule Nde do
                   updateDelta2(pid, (state.s / state.w) - state.sToWOld)
                   #IO.inspect((state.s / state.w) - state.sToWOld)
                else
-                  if ((abs(state.delta1) < 1.0e-10) and (abs(state.delta2) < 1.0e-10) and (abs((state.s / state.w) - state.sToWOld) < 1.0e-10)) do
+                  if ((abs(state.delta1) < 1.0e-10) and (abs(state.delta2) < 1.0e-10) and (abs((state.s / state.w) - state.sToWOld) < 1.0e-10) and (state.done? != 1)) do
                      setDone(pid)
+                     Boss.nodeDone(state.parentPid)
                      true
                   else
                      updateDelta1(pid, 99.99999)
@@ -345,13 +349,13 @@ defmodule Nde do
    end
 
    def sendMsg(pid, state) do      
-      if ((state.algo == "gossip") and (state.rumor != "") and state.timesSent < 10) do
+      if ((state.algo == "gossip") and (state.rumor != "") and state.done? != 1) do
          :timer.sleep(Enum.random(0..500))
          #send message to a random neighbor
          receiveMsg(Enum.random(state.conns), state.rumor)
          incTimesSent(pid)
       else
-         if (state.algo == "push-sum") do
+         if (state.algo == "push-sum") and (state.done? != 1)do
             :timer.sleep(Enum.random(0..500))
             receiveMsg(Enum.random(state.conns), {state.s/2, state.w/2})
             updateSToWOld(pid)
@@ -359,7 +363,7 @@ defmodule Nde do
             incTimesSent(pid)
          end
       end
-      checkDone(pid, state)
+      checkDone(pid, getState(pid))
       sendMsg(pid, getState(pid))
    end
 
@@ -412,7 +416,7 @@ end
 
 
 [numNodes, topology, algorithm] = System.argv     #get command line arguments
-Boss.start(%{:numNodes => String.to_integer(numNodes), :topo => topology, :algo => algorithm, :workerLst => [], :rumor => "gossip"})
+Boss.start(%{:numNodes => String.to_integer(numNodes), :topo => topology, :algo => algorithm, :workerLst => [], :rumor => "gossip", :nodesDone => 0})
 bossState = Boss.getState()
 Boss.startGossiping(bossState)
 #Boss.spawnNodes([], 4) |> IO.inspect
