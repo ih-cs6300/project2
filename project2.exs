@@ -143,10 +143,10 @@ defmodule Boss do
    end
 
    def conn3D (nodeLst) do
-      #lenSide = round(:math.pow(length(nodeLst), (1/3)))
+      lenSide = round(:math.pow(length(nodeLst), (1/3)))
       #IO.inspect(lenSide)
 
-      gridSqrs = Enum.map(0..2, fn(x) -> Enum.map(0..2, fn(y) -> Enum.map(0..2, fn(z) -> {x, y, z} end) end) end) |> List.flatten()
+      gridSqrs = Enum.map(0..(lenSide - 1), fn(x) -> Enum.map(0..(lenSide - 1), fn(y) -> Enum.map(0..(lenSide - 1), fn(z) -> {x, y, z} end) end) end) |> List.flatten()
       #IO.inspect(gridSqrs)
 
       gridMap = Enum.zip(gridSqrs, nodeLst) |> Enum.into(%{})
@@ -173,7 +173,7 @@ defmodule Boss do
 
    def rand2DgetNeighbors(gridPos, gridMap, gridSqrs) do
       gridSqrs = List.delete(gridSqrs, gridPos)
-      connLst = Enum.filter(gridSqrs, fn(pos2) -> dist(gridPos, pos2) <= 0.2 end) |> Enum.map(fn(x) -> gridMap[x] end) 
+      connLst = Enum.filter(gridSqrs, fn(pos2) -> dist(gridPos, pos2) <= 0.1 end) |> Enum.map(fn(x) -> gridMap[x] end) 
       connLst
    end
 
@@ -222,23 +222,32 @@ defmodule Boss do
       GenServer.call(__MODULE__, :status)
    end
 
-   def checkAllDone(workerLst) do
-      if (!Enum.all?(workerLst, fn(workerPid) -> Nde.done?(workerPid) == 1 end)) do
-         checkAllDone(workerLst)
+   def checkAllDone(workerLst, time1, tMax) do
+      deltaTime = (System.monotonic_time(:milliseconds) - time1) / 1000.0
+      IO.inspect(deltaTime)
+      if ((!Enum.all?(workerLst, fn(workerPid) -> Nde.done?(workerPid) == 1 end)) and (deltaTime < (tMax * 1.05))) do
+         checkAllDone(workerLst, time1, tMax)
       end 
    end
 
    def startGossiping(state) do
+      tMax = 30.0
       workerPid = Enum.random(state.workerLst)
       Nde.setRumor(workerPid, state.rumor)
-      time1 = System.monotonic_time(:milliseconds);
       Enum.map(state.workerLst, fn(workerPid) -> Nde.startGossip(workerPid) end)
-      checkAllDone(state.workerLst)
+      time1 = System.monotonic_time(:milliseconds)
+      checkAllDone(state.workerLst, time1, tMax)
       time2 = System.monotonic_time(:milliseconds)
+      deltaT = (time2 - time1) / 1000.0
       Nde.getState(Enum.at(state.workerLst, 0)) |> IO.inspect
       Nde.getState(Enum.at(state.workerLst, 1)) |> IO.inspect
       Nde.getState(Enum.at(state.workerLst, 2)) |> IO.inspect
-      IO.inspect("#{(time2 - time1) / 1000}s")
+      
+      if (deltaT >= tMax) do
+         IO.puts("#{length(state.workerLst)}," <> "NaN")
+      else
+         IO.puts("#{length(state.workerLst)},#{deltaT}")
+      end
    end
 
    def handle_call(op, _from, state) do
@@ -260,10 +269,6 @@ defmodule Nde do
 
    def start(init) do
       GenServer.start_link(__MODULE__, init)
-   end
-
-   def init(initVal) do
-      {:ok, initVal}
    end
 
    def setConns(pid, connLst) do
@@ -298,36 +303,6 @@ defmodule Nde do
       GenServer.cast(pid, :setDone)
    end
 
-   def checkDone(pid, state) do
-      if (state.algo == "gossip") do
-         if(state.timesSent >= 10) do
-            setDone(pid)
-            true
-         else
-            false
-         end
-      else
-         if (state.algo == "push-sum") do
-            if(state.delta1 == 99.99999) do
-               updateDelta1(pid, (state.s / state.w) - state.sToWOld)
-            else 
-               if (state.delta2 == 99.99999) do
-                  updateDelta2(pid, (state.s / state.w) - state.sToWOld)
-                  #IO.inspect((state.s / state.w) - state.sToWOld)
-               else
-                  if ((abs(state.delta1) < 1.0e-10) and (abs(state.delta2) < 1.0e-10) and (abs((state.s / state.w) - state.sToWOld) < 1.0e-10)) do
-                     setDone(pid)
-                     true
-                  else
-                     updateDelta1(pid, 99.99999)
-                     updateDelta2(pid, 99.99999)
-                  end
-               end    
-            end
-         end
-      end
-   end
-   
    def updateSw(pid) do
       GenServer.cast(pid, :updateSw)
    end
@@ -344,22 +319,60 @@ defmodule Nde do
       GenServer.cast(pid, :updateSToWOld)
    end
 
-   def sendMsg(pid, state) do      
-      if ((state.algo == "gossip") and (state.rumor != "") and state.timesSent < 10) do
-         :timer.sleep(Enum.random(0..500))
-         #send message to a random neighbor
-         receiveMsg(Enum.random(state.conns), state.rumor)
-         incTimesSent(pid)
+   def init(initVal) do
+      {:ok, initVal}
+   end
+
+   def checkDone(pid, state) do
+      if (state.algo == "gossip") do
+         if ((state.timesSent >= (10 * length(state.conns))) or (state.timesHeard >= 10) or (length(state.conns) == 0) or (state.done? == 1)) do
+            setDone(pid)
+            true
+         else
+            false
+         end
       else
          if (state.algo == "push-sum") do
-            :timer.sleep(Enum.random(0..500))
-            receiveMsg(Enum.random(state.conns), {state.s/2, state.w/2})
-            updateSToWOld(pid)
-            updateSw(pid)
-            incTimesSent(pid)
+            if(state.delta1 == 99.99999) do
+               updateDelta1(pid, (state.s / state.w) - state.sToWOld)
+            else 
+               if (state.delta2 == 99.99999) do
+                  updateDelta2(pid, (state.s / state.w) - state.sToWOld)
+               else
+                  if (((abs(state.delta1) < 1.0e-10) and (abs(state.delta2) < 1.0e-10) and (abs((state.s / state.w) - state.sToWOld) < 1.0e-10)) or (length(state.conns) == 0) or (state.done? == 1)) do
+                     setDone(pid)
+                     true
+                  else
+                     updateDelta1(pid, 99.99999)
+                     updateDelta2(pid, 99.99999)
+                     false
+                  end
+               end    
+            end
          end
       end
-      checkDone(pid, state)
+   end
+
+   def sendMsg(pid, state) do      
+      if ((state.algo == "gossip") and (state.rumor != "") and (state.done? != 1)) do
+         :timer.sleep(Enum.random(0..500))
+         #send message to a random neighbor
+         if (length(state.conns) > 0) do
+            receiveMsg(Enum.random(state.conns), state.rumor)
+            incTimesSent(pid)
+         end
+      else
+         if (state.algo == "push-sum") and (state.done? != 1) do
+            :timer.sleep(Enum.random(0..500))
+            if (length(state.conns) > 0) do
+               receiveMsg(Enum.random(state.conns), {state.s/2, state.w/2})
+               incTimesSent(pid)
+               updateSToWOld(pid)
+               updateSw(pid)
+            end
+         end
+      end
+      checkDone(pid, getState(pid))
       sendMsg(pid, getState(pid))
    end
 
@@ -383,9 +396,6 @@ defmodule Nde do
    end
 
    def handle_cast({:msg, msg}, state) do
-      #IO.inspect(self())
-      #IO.inspect(state)
-      #IO.puts(" ")
       if (state.algo == "gossip") do
          {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
       else
@@ -402,7 +412,6 @@ defmodule Nde do
          {:updateDelta2, val} -> {:noreply, %{state | :delta2 => val}}
          :setDone -> {:noreply, %{state | :done? => 1}}
          {:setConns, connLst} -> {:noreply, %{state | :conns => connLst}}
-         #{:msg, msg} -> {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
          {:setRumor, rumor} -> {:noreply, %{state | :rumor => rumor}}
          _ -> {:stop, "Not implemented", state}
       end
@@ -415,13 +424,3 @@ end
 Boss.start(%{:numNodes => String.to_integer(numNodes), :topo => topology, :algo => algorithm, :workerLst => [], :rumor => "gossip"})
 bossState = Boss.getState()
 Boss.startGossiping(bossState)
-#Boss.spawnNodes([], 4) |> IO.inspect
-#Boss.nearestCube(10, 1) |> IO.inspect
-#{:ok, pid} = Nde.start(%{:conns => []})
-#Nde.getState(pid) |> IO.inspect
-#Nde.setConns(pid, [1, 2, 3, 4]) |> IO.inspect
-#Nde.getConns(pid) |> IO.inspect
-#Nde.getState(pid) |> IO.inspect
-#Boss.connLine([1, 2, 3, 4, 5], 0, []) |> IO.inspect
-#Boss.connFull([1, 2, 3, 4, 5], 0, []) |> IO.inspect
-#Boss.connLineImp([1, 2, 3, 4, 5, 6], 0, []) |> IO.inspect
