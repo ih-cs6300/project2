@@ -7,7 +7,7 @@ defmodule Boss do
 
    def init(state) do
       #start numNode nodes 
-      workerLst = spawnNodes([], correctedNumNodes(state.numNodes, state.topo), state.topo, state.algo)
+      workerLst = spawnNodes([], correctedNumNodes(state.numNodes, state.topo), state.topo, state.algo, state.fRate)
       connLst = createConnLst(state.topo, workerLst)
       setConnNodes(connLst, workerLst)
       {:ok, %{state | :workerLst => workerLst}}
@@ -208,13 +208,13 @@ defmodule Boss do
       end
    end
    
-   def spawnNodes(nodeLst, numNodes, topo, algo) do
+   def spawnNodes(nodeLst, numNodes, topo, algo, fRate) do
       if (numNodes == 0) do
          nodeLst
       else
          {:ok, node} = Nde.start(%{:conns => [], :algo => algo, :timesHeard => 0, :timesSent => 0, :rumor => "", :done? => 0, :nodeId => numNodes, :s => numNodes, :w => 1, :sToWOld => 1000000,
-          :delta1 => 99.99999, :delta2 => 99.99999})
-         spawnNodes([node | nodeLst], numNodes - 1, topo, algo)
+          :delta1 => 99.99999, :delta2 => 99.99999, :failureRate => fRate})
+         spawnNodes([node | nodeLst], numNodes - 1, topo, algo, fRate)
       end
    end
 
@@ -224,14 +224,14 @@ defmodule Boss do
 
    def checkAllDone(workerLst, time1, tMax) do
       deltaTime = (System.monotonic_time(:milliseconds) - time1) / 1000.0
-      IO.inspect(deltaTime)
+      #IO.inspect(deltaTime)
       if ((!Enum.all?(workerLst, fn(workerPid) -> Nde.done?(workerPid) == 1 end)) and (deltaTime < (tMax * 1.05))) do
          checkAllDone(workerLst, time1, tMax)
       end 
    end
 
    def startGossiping(state) do
-      tMax = 30.0
+      tMax = 400.0
       workerPid = Enum.random(state.workerLst)
       Nde.setRumor(workerPid, state.rumor)
       Enum.map(state.workerLst, fn(workerPid) -> Nde.startGossip(workerPid) end)
@@ -239,9 +239,9 @@ defmodule Boss do
       checkAllDone(state.workerLst, time1, tMax)
       time2 = System.monotonic_time(:milliseconds)
       deltaT = (time2 - time1) / 1000.0
-      Nde.getState(Enum.at(state.workerLst, 0)) |> IO.inspect
-      Nde.getState(Enum.at(state.workerLst, 1)) |> IO.inspect
-      Nde.getState(Enum.at(state.workerLst, 2)) |> IO.inspect
+      #Nde.getState(Enum.at(state.workerLst, 0)) |> IO.inspect
+      #Nde.getState(Enum.at(state.workerLst, 1)) |> IO.inspect
+      #Nde.getState(Enum.at(state.workerLst, 2)) |> IO.inspect
       
       if (deltaT >= tMax) do
          IO.puts("#{length(state.workerLst)}," <> "NaN")
@@ -325,7 +325,7 @@ defmodule Nde do
 
    def checkDone(pid, state) do
       if (state.algo == "gossip") do
-         if ((state.timesSent >= (10 * length(state.conns))) or (state.timesHeard >= 10) or (length(state.conns) == 0) or (state.done? == 1)) do
+         if ((state.timesSent >= 100) or (state.timesHeard >= 10) or (length(state.conns) == 0) or (state.done? == 1)) do
             setDone(pid)
             true
          else
@@ -353,18 +353,21 @@ defmodule Nde do
       end
    end
 
-   def sendMsg(pid, state) do      
+   def sendMsg(pid, state) do
+      pFailure = :rand.uniform(100)      #between [1, 100]
+      #if state.fRate = 0, never fails
       if ((state.algo == "gossip") and (state.rumor != "") and (state.done? != 1)) do
          :timer.sleep(Enum.random(0..500))
-         #send message to a random neighbor
-         if (length(state.conns) > 0) do
+         #send message to a random neighbor make sure list isn't empty
+         if ((length(state.conns) > 0) and (pFailure > state.failureRate))do
             receiveMsg(Enum.random(state.conns), state.rumor)
             incTimesSent(pid)
          end
       else
          if (state.algo == "push-sum") and (state.done? != 1) do
             :timer.sleep(Enum.random(0..500))
-            if (length(state.conns) > 0) do
+            #send message to random neighbor, make sure list isn't empty
+            if ((length(state.conns) > 0) and (pFailure > state.failureRate)) do
                receiveMsg(Enum.random(state.conns), {state.s/2, state.w/2})
                incTimesSent(pid)
                updateSToWOld(pid)
@@ -396,10 +399,20 @@ defmodule Nde do
    end
 
    def handle_cast({:msg, msg}, state) do
+      pFailure = :rand.uniform(100)     #between [1, 100]
+      # if state.fRate = 0, never fails
       if (state.algo == "gossip") do
-         {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
+         if (pFailure > state.failureRate) do
+            {:noreply, %{state | :rumor => msg, :timesHeard => state.timesHeard + 1}}
+         else
+            {:noreply, state}
+         end
       else
-         {:noreply, %{state | :s => elem(msg, 0) + state.s, :w => elem(msg, 1) + state.w, :timesHeard => state.timesHeard + 1}}
+         if (pFailure > state.failureRate) do
+            {:noreply, %{state | :s => elem(msg, 0) + state.s, :w => elem(msg, 1) + state.w, :timesHeard => state.timesHeard + 1}}
+         else
+            {:noreply, state}
+         end
       end
    end
 
@@ -419,8 +432,17 @@ defmodule Nde do
 
 end
 
+defmodule ProcessInfo do
+   def parseArgs(args) do
+      if (length(args) == 3) do
+          args ++ ["0"]
+      else
+         args
+      end
+   end
+end
 
-[numNodes, topology, algorithm] = System.argv     #get command line arguments
-Boss.start(%{:numNodes => String.to_integer(numNodes), :topo => topology, :algo => algorithm, :workerLst => [], :rumor => "gossip"})
+[numNodes, topology, algorithm, fRate] = ProcessInfo.parseArgs(System.argv)
+Boss.start(%{:numNodes => String.to_integer(numNodes), :topo => topology, :algo => algorithm, :workerLst => [], :rumor => "gossip", :fRate => String.to_integer(fRate)})
 bossState = Boss.getState()
 Boss.startGossiping(bossState)
